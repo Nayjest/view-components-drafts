@@ -1,0 +1,9 @@
+vendor
+composer.phar
+composer.lock
+apigen.phar
+phpunit.phar
+build
+phpunit.xml
+.env
+*.sqlite

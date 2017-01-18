@@ -1,0 +1,42 @@
+{
+    "name": "view-components/core",
+    "description": "Data querying package for PHP",
+
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Vitalii [Nayjest] Stepanenko",
+            "email": "mail@vitaliy.in",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "nayjest/str-case-converter": "^1.0",
+        "evenement/evenement": "^2.0",
+        "nayjest/querying": "dev-master",
+        "symfony/event-dispatcher": "^3.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "ViewComponents\\Core\\" : "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ViewComponents\\Core\\Test\\" : "tests/unit"
+        }
+    },
+    "require-dev": {
+        "symfony/var-dumper": "^3.1",
+        "phpunit/phpunit": "^5.7"
+    },
+    "minimum-stability":"dev",
+    "support": {
+        "email": "mail@vitaliy.in"
+    },
+    "scripts": {
+        "test": "php vendor/phpunit/phpunit/phpunit",
+        "unit-test": "php vendor/phpunit/phpunit/phpunit --testsuite unit"
+    }
+}
