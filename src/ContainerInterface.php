@@ -2,6 +2,12 @@
 
 namespace ViewComponents\Core;
 
+/**
+ * Interface for blocks that can store inner blocks.
+ *
+ * Implementation example:
+ * @see \ViewComponents\Core\AbstractContainer
+ */
 interface ContainerInterface extends BlockInterface
 {
     /**

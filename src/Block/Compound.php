@@ -19,6 +19,8 @@ class Compound extends AbstractBlock
     const EVENT_ATTACH_INNER_BLOCKS = 'attach_inner_blocks';
     const EVENT_FINALIZE = 'finalize';
 
+    const PATH_SEPARATOR = '.';
+
     /** @var ComponentInterface[] */
     private $components = [];
 
@@ -54,7 +56,9 @@ class Compound extends AbstractBlock
 
     public final function shareEventSequenceTo(Compound $compound)
     {
-
+        if ($compound->eventSequence === $this->getEventSequence()) {
+            return;
+        }
         $compound->eventSequence = $compound->eventSequence
             ? $this->eventSequence->merge($compound->eventSequence)
             : $this->eventSequence;
@@ -190,6 +194,30 @@ class Compound extends AbstractBlock
     public function getComponents()
     {
         return $this->components;
+    }
+
+    /**
+     * @param string|null $selector
+     * @return null|Compound|BlockInterface
+     */
+    public function findBlock($selector)
+    {
+        if ($selector === null) {
+            return $this;
+        }
+        $ids = explode('.', $selector);
+        $currentRoot = $this;
+        $block = null;
+        foreach ($ids as $id) {
+            if (!$currentRoot->hasBlock($id)) {
+                return null;
+            }
+            $block = $currentRoot->getBlock($id);
+            if ($block instanceof Compound) {
+                $currentRoot = $block;
+            }
+        }
+        return $block;
     }
 
     /**
