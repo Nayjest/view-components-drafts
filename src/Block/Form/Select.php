@@ -7,6 +7,7 @@ use ViewComponents\Core\Block\CollectionPresenter;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\Block\DataPresenter;
 use ViewComponents\Core\Block\Tag;
+use ViewComponents\Core\BlockInterface;
 use ViewComponents\Core\Compound\Component;
 use ViewComponents\Core\DataPresenterInterface;
 
@@ -28,25 +29,14 @@ use ViewComponents\Core\DataPresenterInterface;
  */
 class Select extends AbstractInput
 {
-    /**
-     * @var array
-     */
-    private $options;
-
     public function __construct($name, $label = null, array $options = [])
     {
         parent::__construct($name, $label, null);
         $this->addComponents([
-            new InnerBlock('container.select', Tag::make('select')->setSortPosition(2), function () {
-                $this->selectBlock->setAttribute('name', $this->name);
-            }),
-            new InnerBlock('select.option_collection', new CollectionPresenter(), function () {
-                $this->optionCollectionBlock
-                    ->setData($this->getOptionsForSelect())
-                    ->setRecordView($this->optionBlock);
-            }),
+            new InnerBlock('container.select', Tag::make('select')->setSortPosition(2)),
+            new InnerBlock('select.optionCollection', new CollectionPresenter()),
             new InnerBlock(
-                'option_collection.option',
+                'optionCollection.option',
                 new DataPresenter(
                     function (array $record, Tag $optionBlock) {
                         $optionBlock
@@ -62,13 +52,33 @@ class Select extends AbstractInput
                 )
             ),
         ]);
-        $this->options = $options;
+
+        $this->hub->builder()
+            ->define('options', $options)
+            ->usedBy('optionCollectionBlock', function (CollectionPresenter $block, $options) {
+                $block->setData($this->getOptionsForSelect($options));
+            })
+            ->usedBy('value', function (&$value, $options) {
+                if ($value === null) {
+                    $options = $this->getOptionsForSelect($options);
+                    foreach ($options as $option) {
+                        $value = $option['value'];
+                        return;
+                    }
+                }
+            })
+            ->defineRelation('selectBlock', 'name', function (Tag $select, $name) {
+                $select->setAttribute('name', $name);
+            })
+            ->defineRelation('optionCollectionBlock', 'optionBlock', function (CollectionPresenter $collection, DataPresenterInterface $option) {
+                $collection->setRecordView($option);
+            });
     }
 
-    protected function getOptionsForSelect()
+    protected function getOptionsForSelect(array $options)
     {
         $optionsForSelect = [];
-        foreach ($this->options as $key => $value) {
+        foreach ($options as $key => $value) {
             if (!is_array($value)) {
                 $option = [
                     'value' => $key,

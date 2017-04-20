@@ -15,7 +15,8 @@
         "nayjest/str-case-converter": "^1.0",
         "evenement/evenement": "^2.0",
         "nayjest/querying": "dev-master",
-        "symfony/event-dispatcher": "^3.2"
+        "symfony/event-dispatcher": "^3.2",
+        "nayjest/di-hub": "dev-v0.5-dev"
     },
     "autoload": {
         "psr-4": {

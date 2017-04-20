@@ -2,144 +2,109 @@
 
 namespace ViewComponents\Core\Block\ListBlock;
 
-use Exception;
+use Nayjest\DI\Definition\Item;
+use Nayjest\DI\Definition\Relation;
+use Nayjest\DI\Hub;
+use Nayjest\DI\HubInterface;
+use Nayjest\DI\SubHub;
 use Nayjest\Querying\Operation\PaginateOperation;
+use Nayjest\Querying\QueryInterface;
 use ViewComponents\Core\Block\Compound;
-use ViewComponents\Core\Block\Compound\Component\BlockComponentInterface;
-use ViewComponents\Core\Block\Compound\Component\BlockComponentTrait;
-use ViewComponents\Core\Block\Compound\Component\HandlersTrait;
+use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
+use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\Block\Form;
 use ViewComponents\Core\Block\ListBlock;
 use ViewComponents\Core\Block\ListBlock\Pagination\PaginationTemplate;
 use ViewComponents\Core\Block\ListBlock\Pagination\PaginationViewInterface;
+use ViewComponents\Core\Common\MagicHubAccessTrait;
 
-class Pagination implements BlockComponentInterface
+/**
+ * Class Pagination
+ *
+ * @property int $pageSize
+ * @property string $uriPageParam
+ * @property-read PaginateOperation $operation
+ * @property PaginationViewInterface $block
+ * @property-read string $parentId
+ */
+class Pagination implements ComponentInterface
 {
-    const ID = 'pagination';
+    Use MagicHubAccessTrait;
+
     const DEFAULT_URI_KEY = 'p';
-    const EVENT_PREPARE_PAGINATION_VIEW = 'prepare_pagination_view';
-
-    use BlockComponentTrait {
-        BlockComponentTrait::handle as private handleInternal;
-    }
-    use HandlersTrait;
-
     const SORT_POSITION = 9;
-    /**
-     * @var int
-     */
-    protected $pageSize;
 
-    /**
-     * @var string
-     */
-    private $uriPageParam;
-
-    private $block;
-
+    /** @var HubInterface */
+    protected $hub;
 
     public function __construct(
         $uriPageParam = self::DEFAULT_URI_KEY,
         $pageSize = 50,
-        $parentId = null
+        $parentId = Compound::CONTAINER_BLOCK
     )
     {
-        $this->pageSize = $pageSize;
-        $this->uriPageParam = $uriPageParam;
-        $this->parentId = $parentId;
+        $this->hub = new Hub([
+            new Item('uriPageParam', $uriPageParam),
+            new Item('pageSize', $pageSize),
+            new Item('parentId', $parentId),
+            new Item('operation', null),
+            new Item('block', function () {
+                return new PaginationTemplate();
+            }),
+            new Relation(
+                'operation',
+                ['currentPage', 'pageSize'],
+                function (&$operation, $currentPage, $pageSize) {
+                    $operation = new PaginateOperation($currentPage, $pageSize);
+                }
+            )
+        ]);
+
     }
 
-    public function getId()
+    public function register(HubInterface $hub)
     {
-        return self::ID;
-    }
+        $this->hub = new SubHub('pagination.', $this->hub, $hub);
+        $this->hub->addDefinition(new Item('currentPage'));
+        $hub->addDefinitions([
+            new Relation(
+                'pagination.currentPage',
+                [InnerBlock::getFullId('form'), 'pagination.uriPageParam'],
+                function (&$currentPage, Form $form, $uriPageParam) {
+                    $currentPage = $form->getInputValue($uriPageParam, 1);
+                }
+            ),
+            new Relation(
+                'query',
+                'pagination.operation',
+                function (QueryInterface $query, PaginateOperation $operation = null, PaginateOperation $prev = null) {
+                    if ($prev) {
+                        $query->removeOperation($prev);
+                    }
+                    $query->addOperation($operation);
+                }
+            ),
+            new Relation(
+                'pagination.block',
+                ['pagination.operation', 'pagination.uriPageParam', 'query'],
+                function (PaginationViewInterface $block, PaginateOperation $operation = null, $uriPageParam, QueryInterface $query) {
 
-    /**
-     * @return PaginationViewInterface
-     */
-    public function getBlock()
-    {
-        if ($this->block === null) {
-            $this->block = new PaginationTemplate();
-        }
-        return $this->block;
-    }
+                    // calculate total pages
+                    $query->removeOperation($operation);
+                    $totalPages = (int)ceil($query->count() / $operation->getPageSize());
+                    $query->addOperation($operation);
 
-    public function setBlock(PaginationViewInterface $block)
-    {
-        $this->block = $block;
-    }
+                    $block
+                        ->setUriKey($uriPageParam)
+                        ->setCurrent($operation->getPageNumber())
+                        ->setTotal($totalPages);
 
-    public function handle($eventId, Compound $root)
-    {
-        $this->checkRootType($eventId, $root, ListBlock::class);
-        /** @var ListBlock $root */
-        if ($eventId === Compound::EVENT_SET_ROOT) {
-            $root->defineEvent(self::EVENT_PREPARE_PAGINATION_VIEW)
-                ->after(ListBlock::EVENT_EXECUTE_QUERY)
-                ->before(ListBlock::EVENT_FINALIZE);
-        } elseif ($eventId === ListBlock::EVENT_MODIFY_QUERY) {
-            $root->getQuery()->addOperation(new PaginateOperation(
-                $this->getCurrentPage($root),
-                $this->pageSize
-            ));
-        } elseif ($eventId === self::EVENT_PREPARE_PAGINATION_VIEW) {
-            $this->getBlock()
-                ->setCurrent($this->getCurrentPage($root))
-                ->setUriKey($this->uriPageParam)
-                ->setTotal($this->getPageCount($root))
-                ->setSortPosition(self::SORT_POSITION);
-        }
-        $this->handleInternal($eventId, $root);
-    }
-
-    protected function getCurrentPage(ListBlock $root)
-    {
-        return $root->getFormBlock()->getInputValue($this->uriPageParam)?:1;
-    }
-
-    protected function getPageCount(ListBlock $root)
-    {
-        return (int)ceil($this->getTotalRecordsCount($root) / $this->pageSize);
-    }
-
-    /**
-     * @param ListBlock $root
-     * @return int
-     * @throws Exception
-     */
-    protected function getTotalRecordsCount(ListBlock $root)
-    {
-        $query = $root->getQuery();
-        $removed = [];
-        foreach ($query->getOperations() as $operation) {
-            if ($operation instanceof PaginateOperation) {
-                $removed[] = $operation;
-                $query->removeOperation($operation);
-            }
-        }
-        $count = $query->count();
-        $query->addOperations($removed);
-        return $count;
-    }
-
-    /**
-     * @return int
-     */
-    public function getPageSize()
-    {
-        return $this->pageSize;
-    }
-
-    /**
-     * Sets page size.
-     *
-     * @param int $pageSize
-     * @return Pagination
-     */
-    public function setPageSize($pageSize)
-    {
-        $this->pageSize = $pageSize;
-        return $this;
+                    if ($block->getSortPosition() === null) {
+                        $block->setSortPosition(self::SORT_POSITION);
+                    }
+                }
+            ),
+            new Relation($this->parentId, 'pagination.block', InnerBlock::attachInnerBlockFunc()),
+        ]);
     }
 }

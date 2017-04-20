@@ -2,11 +2,13 @@
 
 namespace ViewComponents\Core\Block\ListBlock;
 
-use Exception;
+use Nayjest\DI\Definition\Relation;
+use Nayjest\DI\HubInterface;
 use Nayjest\Querying\Operation\SortOperation;
-use ViewComponents\Core\Block\Compound;
+use Nayjest\Querying\QueryInterface;
 use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
+use ViewComponents\Core\Block\Form;
 use ViewComponents\Core\Block\Form\Select;
 use ViewComponents\Core\Block\ListBlock;
 use ViewComponents\Core\Block\Tag;
@@ -36,7 +38,7 @@ class SortingControl implements ComponentInterface
             SortOperation::ASC,
             SortOperation::DESC
         ];
-        $this->fieldSelect = new Select('sort_by', 'Sort by', $fields);
+        $this->fieldSelect = new Select('sort_by', 'Sort by', array_combine($fields, $fields));
         $this->fieldSelect->containerBlock->setName('span');
         $this->directionSelect = new Select('sort_dir', null, array_combine($directions, $directions));
         $this->directionSelect->containerBlock->setName('span');
@@ -57,28 +59,29 @@ class SortingControl implements ComponentInterface
         return 'sorting_select';
     }
 
-    public function handle($eventId, Compound $root)
+    public function register(HubInterface $hub)
     {
-        /** @var ListBlock $root */
-        if ($eventId === Compound::EVENT_SET_ROOT) {
-            if (!$root instanceof ListBlock) {
-                throw new Exception("ListBlock expected");
-            }
-            $root->getFormBlock()->addComponents([
-                new InnerBlock('form.sorting_select_container', $this->container),
-                new InnerBlock('form.sorting_select_container.field_select', $this->fieldSelect),
-                new InnerBlock('form.sorting_select_container.direction_select', $this->directionSelect),
-            ]);
-        } elseif ($eventId === ListBlock::EVENT_MODIFY_QUERY) {
-            $field = $this->fieldSelect->getValue();
-            if ($field === '' || $field === null) {
-                return;
-            }
-            $root->getQuery()->addOperation(new SortOperation(
-                $field,
-                $this->directionSelect->getValue()
-            ));
-        }
+        $this->fieldSelect->parentId = 'sortingSelectContainerBlock';
+        $this->directionSelect->parentId = 'sortingSelectContainerBlock';
+        $hub->addDefinitions([
+            new Relation(ListBlock::FORM_BLOCK, null, function(Form $form) {
+                $form->addComponents([
+                    new InnerBlock('form.sortingSelectContainer', $this->container),
+                    $this->fieldSelect,
+                    $this->directionSelect,
+                ]);
+            }),
+            new Relation(ListBlock::QUERY, null, function(QueryInterface $query) {
+                $field = $this->fieldSelect->getValue();
+                if ($field === '' || $field === null) {
+                    return;
+                }
+                $query->addOperation(new SortOperation(
+                    $field,
+                    $this->directionSelect->getValue()
+                ));
+            }),
+        ]);
     }
 
     /**

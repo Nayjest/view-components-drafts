@@ -2,10 +2,8 @@
 
 namespace ViewComponents\Core\Block\Form;
 
-use ViewComponents\Core\Block\Block;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\Block\Tag;
-use ViewComponents\Core\Compound\Component;
 
 /**
  * @property Tag $inputBlock
@@ -19,12 +17,13 @@ class Input extends AbstractInput
         parent::__construct($name, $label, $value);
         $this->addComponent(new InnerBlock(
             'container.input',
-            Tag::make('input')->setSortPosition(2),
-            function () {
-                $this->inputBlock
-                    ->setAttribute('name', $this->getName())
-                    ->setAttribute('value', $this->getValue());
-            }
+            Tag::make('input')->setSortPosition(2)
         ));
+        $this->hub->builder()
+            ->defineRelation('inputBlock', 'name', function (Tag $input, $name) {
+                $input->setAttribute('name', $name);
+            })->defineRelation('inputBlock', 'value', function (Tag $input, $value) {
+                $input->setAttribute('value', $value);
+            });
     }
 }

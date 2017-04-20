@@ -3,15 +3,11 @@
 namespace ViewComponents\Core\Block;
 
 use Nayjest\Querying\AbstractQuery;
-use ViewComponents\Core\Block\Compound\Component\Event;
-use ViewComponents\Core\Block\Compound\Component\Handler;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\BlockInterface;
 use ViewComponents\Core\Block\Form;
 use ViewComponents\Core\Block\Form\RequestData;
-use ViewComponents\Core\Compound\CompoundMagicTrait;
 use ViewComponents\Core\DataPresenterInterface;
-use ViewComponents\Core\DataPresenterTrait;
 
 /**
  * Class ListBlock
@@ -30,49 +26,46 @@ use ViewComponents\Core\DataPresenterTrait;
  */
 class ListBlock extends Compound
 {
-    use DataPresenterTrait;
-    use CompoundMagicTrait;
-
-    const EVENT_MODIFY_QUERY = 'modify_query';
-    const EVENT_EXECUTE_QUERY = 'execute_query';
+    const QUERY = 'query';
+    const DATA = 'data';
+    const RECORD_VIEW_BLOCK = 'recordViewBlock';
+    const FORM_BLOCK = 'formBlock';
+    const COLLECTION_BLOCK = 'collectionBlock';
 
     public function __construct(AbstractQuery $query, BlockInterface $recordView = null, array $components = [])
     {
-        $this->defineEvent(self::EVENT_MODIFY_QUERY)
-            ->after(Form::EVENT_UPDATE_ERRORS)
-            ->before(Compound::EVENT_FINALIZE);
-        $this->defineEvent(self::EVENT_EXECUTE_QUERY)
-            ->after(self::EVENT_MODIFY_QUERY)
-            ->before(Compound::EVENT_FINALIZE);
-        $this
-            ->setData($query)
-            ->addComponents([
+        parent::__construct($components);
+        $this->hub->builder()
+            ->define(self::QUERY, $query)
+            ->define(self::DATA, null, true)
+            ->uses(self::QUERY, function(&$data, AbstractQuery $query) {
+                $data = $query->getRaw();
+            })
+            ->usedBy(self::COLLECTION_BLOCK, function(CollectionPresenter $collectionBlock, $data) {
+                $collectionBlock->setData($data);
+            })
+            ->defineRelation(
+                self::COLLECTION_BLOCK,
+                self::RECORD_VIEW_BLOCK,
+                function(CollectionPresenter $collectionBlock, DataPresenterInterface $recordView){
+                    $collectionBlock->setRecordView($recordView);
+                 }
+            )
+        ;
+        if (!$this->hub->has(self::FORM_BLOCK)) {
+            $this->addComponent(
                 new InnerBlock(
                     'form',
                     $form = Form::make([new RequestData($_GET)])->setSortPosition(2)
-                ),
-                new InnerBlock('collection', (new CollectionPresenter())->setSortPosition(2)),
-                new InnerBlock('collection.record_view', $recordView ?: new VarDump()),
-                new Handler(self::EVENT_EXECUTE_QUERY, function() {
-                    $this->collectionBlock
-                        ->setData($this->getFinalData())
-                        ->setRecordView($this->recordViewBlock);
-                })
-            ])
-            ->addComponents($components);
-    }
-
-    /**
-     * @return AbstractQuery
-     */
-    public function getQuery()
-    {
-        return $this->getData();
-    }
-
-    protected function getFinalData()
-    {
-        return $this->getQuery()->getRaw();
+                )
+            );
+        }
+        if(!$this->hub->has(self::COLLECTION_BLOCK)) {
+            $this->addComponent(new InnerBlock('collection', (new CollectionPresenter())->setSortPosition(2)));
+        }
+        if(!$this->hub->has(self::RECORD_VIEW_BLOCK)) {
+            $this->addComponent(new InnerBlock('collection.recordView', $recordView ?: new VarDump()));
+        }
     }
 }
 
