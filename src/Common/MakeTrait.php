@@ -1,6 +1,6 @@
 <?php
 
-namespace ViewComponents\Core;
+namespace ViewComponents\Core\Common;
 
 use ReflectionClass;
 

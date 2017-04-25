@@ -2,12 +2,14 @@
 
 namespace ViewComponents\Core\Block;
 
-use ViewComponents\Core\AbstractBlock;
+use ViewComponents\Core\BlockInterface;
+use ViewComponents\Core\BlockTrait;
 use ViewComponents\Core\DataPresenterInterface;
 use ViewComponents\Core\DataPresenterTrait;
 
-class Json extends AbstractBlock implements DataPresenterInterface
+class Json implements BlockInterface, DataPresenterInterface
 {
+    use BlockTrait;
     use DataPresenterTrait;
 
     private $options;

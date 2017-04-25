@@ -8,7 +8,7 @@ use ViewComponents\Core\BlockInterface;
 use ViewComponents\Core\BlockTrait;
 use ViewComponents\Core\Common\MagicHubAccessTrait;
 use ViewComponents\Core\ContainerInterface;
-use ViewComponents\Core\MakeTrait;
+use ViewComponents\Core\Common\MakeTrait;
 
 /**
  * Class Compound

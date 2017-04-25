@@ -3,14 +3,14 @@
 namespace ViewComponents\Core\Block\Compound\Component;
 
 use Nayjest\DI\Builder\DeferredDefinitionBuilder;
-use ViewComponents\Core\MakeTrait;
+use ViewComponents\Core\Common\MakeTrait;
 
 /**
  * DI definition builder as compound component.
  */
 class DefinitionBuilder extends DeferredDefinitionBuilder implements ComponentInterface
 {
-    use MakeTrait;
+    use \ViewComponents\Core\Common\MakeTrait;
 
     public function usedByBlock($id, callable $func)
     {

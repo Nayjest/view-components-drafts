@@ -3,13 +3,15 @@ namespace ViewComponents\Core\Block;
 
 use RuntimeException;
 use ViewComponents\Core\ArrayDataPresenterTrait;
+use ViewComponents\Core\BlockInterface;
+use ViewComponents\Core\BlockTrait;
 use ViewComponents\Core\DataPresenterInterface;
 use ViewComponents\Core\Rendering\RendererInterface;
 use ViewComponents\Core\Services;
-use ViewComponents\Core\AbstractBlock;
 
-class Template extends AbstractBlock implements DataPresenterInterface
+class Template implements BlockInterface, DataPresenterInterface
 {
+    use BlockTrait;
     use ArrayDataPresenterTrait;
 
     /** @var  string */

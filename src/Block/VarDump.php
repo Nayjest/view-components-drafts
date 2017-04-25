@@ -6,11 +6,14 @@ use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\CliDumper;
 use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 use ViewComponents\Core\AbstractBlock;
+use ViewComponents\Core\BlockInterface;
+use ViewComponents\Core\BlockTrait;
 use ViewComponents\Core\DataPresenterInterface;
 use ViewComponents\Core\DataPresenterTrait;
 
-class VarDump extends AbstractBlock implements DataPresenterInterface
+class VarDump implements BlockInterface, DataPresenterInterface
 {
+    use BlockTrait;
     use DataPresenterTrait;
 
     public function __construct($data = null)

@@ -2,13 +2,14 @@
 
 namespace ViewComponents\Core\Block;
 
-use ViewComponents\Core\AbstractBlock;
 use ViewComponents\Core\BlockInterface;
+use ViewComponents\Core\BlockTrait;
 use ViewComponents\Core\DataPresenterInterface;
 use ViewComponents\Core\DataPresenterTrait;
 
-class DataPresenter extends AbstractBlock implements DataPresenterInterface
+class DataPresenter implements BlockInterface, DataPresenterInterface
 {
+    use BlockTrait;
     use DataPresenterTrait;
 
     /**

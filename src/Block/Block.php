@@ -2,12 +2,14 @@
 
 namespace ViewComponents\Core\Block;
 
-use ViewComponents\Core\AbstractBlock;
+use ViewComponents\Core\BlockInterface;
+use ViewComponents\Core\BlockTrait;
 use ViewComponents\Core\DataPresenterInterface;
 use ViewComponents\Core\DataPresenterTrait;
 
-class Block extends AbstractBlock implements DataPresenterInterface
+class Block implements BlockInterface, DataPresenterInterface
 {
+    use BlockTrait;
     use DataPresenterTrait;
 
     public function __construct($data = null)

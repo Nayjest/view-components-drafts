@@ -8,7 +8,8 @@ use Nayjest\DI\HubInterface;
 /**
  * Trait MagicHubAccessTrait
  *
- * @property HubInterface $hub
+ * Requirements:
+ * @property HubInterface $hub protected hub
  */
 trait MagicHubAccessTrait
 {
