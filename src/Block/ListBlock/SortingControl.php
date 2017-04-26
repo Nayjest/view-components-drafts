@@ -48,7 +48,7 @@ class SortingControl implements ComponentInterface
         if ($defaultDirection !== null) {
             $this->directionSelect->setValue($defaultDirection);
         }
-        $this->container = new Tag('div');
+        $this->container = new Tag('span');
     }
 
     /**
