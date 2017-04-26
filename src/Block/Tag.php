@@ -115,6 +115,29 @@ class Tag extends AbstractContainer implements DataPresenterInterface
         return $this;
     }
 
+    public function addClass($className) {
+        $classAttribute = $this->getAttribute('class', '');
+        $classes = explode(' ', $classAttribute);
+        if (!in_array($className, $classes)) {
+            $classes[] = $className;
+            $this->setAttribute('class', join(' ', $classes));
+        }
+        return $this;
+    }
+
+    public function removeClass($className) {
+        $classAttribute = $this->getAttribute('class');
+        if (!$classAttribute) {
+            return $this;
+        }
+        $classes = explode(' ', $classAttribute);
+        if(($key = array_search($className, $classes)) !== false) {
+            unset($classes[$key]);
+            $this->setAttribute('class', join(' ', $classes));
+        }
+        return $this;
+    }
+
     public function hasAttribute($name)
     {
         return array_key_exists($name, $this->attributes);
