@@ -13,7 +13,9 @@ trait BlockTrait
      */
     abstract protected function renderInternal();
 
-
+    /**
+     * @return string
+     */
     public final function render()
     {
         if ($this->isHidden()) {
@@ -22,13 +24,18 @@ trait BlockTrait
         return $this->renderInternal();
     }
 
-
+    /**
+     * @return $this
+     */
     public function hide()
     {
         $this->visibility = false;
         return $this;
     }
 
+    /**
+     * @return $this
+     */
     public function show()
     {
         $this->visibility = true;
@@ -84,5 +91,4 @@ trait BlockTrait
     {
         return $this->render();
     }
-
 }
