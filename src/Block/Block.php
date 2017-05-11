@@ -2,6 +2,7 @@
 
 namespace ViewComponents\Core\Block;
 
+use Closure;
 use ViewComponents\Core\BlockInterface;
 use ViewComponents\Core\BlockTrait;
 use ViewComponents\Core\Common\MakeTrait;
@@ -21,6 +22,6 @@ class Block implements BlockInterface, DataPresenterInterface
 
     protected function renderInternal()
     {
-        return (string)$this->data;
+        return (string)($this->data instanceof Closure ? call_user_func($this->data) : $this->data);
     }
 }
