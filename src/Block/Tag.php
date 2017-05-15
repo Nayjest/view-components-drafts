@@ -40,9 +40,9 @@ class Tag extends AbstractContainer implements DataPresenterInterface
      */
     protected $attributes = [];
 
-    public static function make($name = 'div')
+    public static function make($name = 'div', array $attributes = null, array $innerBlocks = null)
     {
-        return new Tag($name);
+        return new Tag($name, $attributes, $innerBlocks);
     }
 
     public function __construct($name = 'div', array $attributes = null, array $innerBlocks = null)
@@ -115,25 +115,48 @@ class Tag extends AbstractContainer implements DataPresenterInterface
         return $this;
     }
 
-    public function addClass($className) {
+    /**
+     * @param string $cssClass
+     * @return $this
+     */
+    public function addClass($cssClass) {
         $classAttribute = $this->getAttribute('class', '');
         $classes = explode(' ', $classAttribute);
-        if (!in_array($className, $classes)) {
-            $classes[] = $className;
+        if (!in_array($cssClass, $classes)) {
+            $classes[] = $cssClass;
             $this->setAttribute('class', join(' ', $classes));
         }
         return $this;
     }
 
-    public function removeClass($className) {
+    /**
+     * @param string[] $cssClasses
+     * @return $this
+     */
+    public function addClasses(array $cssClasses) {
+        foreach($cssClasses as $cssClass) {
+            $this->addClass($cssClass);
+        }
+        return $this;
+    }
+
+    public function removeClass($cssClass) {
         $classAttribute = $this->getAttribute('class');
         if (!$classAttribute) {
             return $this;
         }
         $classes = explode(' ', $classAttribute);
-        if(($key = array_search($className, $classes)) !== false) {
+        if(($key = array_search($cssClass, $classes)) !== false) {
             unset($classes[$key]);
             $this->setAttribute('class', join(' ', $classes));
+        }
+        return $this;
+    }
+
+    public function removeClasses(array $cssClasses)
+    {
+        foreach($cssClasses as $cssClass) {
+            $this->removeClass($cssClass);
         }
         return $this;
     }
@@ -214,11 +237,15 @@ class Tag extends AbstractContainer implements DataPresenterInterface
     }
 
     /**
-     * @param mixed $name
+     * Sets tag name.
+     *
+     * @param string $name
+     * @return $this
      */
     public function setName($name)
     {
         $this->name = $name;
+        return $this;
     }
 
     protected function renderInternal()
