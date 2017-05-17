@@ -66,7 +66,7 @@ class SortingControl implements ComponentInterface
         $hub->addDefinitions([
             new Relation(ListBlock::FORM_BLOCK, null, function(Form $form) {
                 $form->addComponents([
-                    new InnerBlock('form.sortingSelectContainer', $this->container),
+                    InnerBlock::make('form.sortingSelectContainer', $this->container),
                     $this->fieldSelect,
                     $this->directionSelect,
                 ]);

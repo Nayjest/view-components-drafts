@@ -4,14 +4,13 @@ namespace ViewComponents\Core\Block\ListBlock;
 
 use Nayjest\DI\Definition\Item;
 use Nayjest\DI\Definition\Relation;
-use Nayjest\DI\Hub;
 use Nayjest\DI\HubInterface;
 use Nayjest\DI\SubHub;
 use Nayjest\Querying\Operation\PaginateOperation;
 use Nayjest\Querying\QueryInterface;
 use ViewComponents\Core\Block\Compound;
-use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
+use ViewComponents\Core\Block\Compound\Component\InnerBlock\InnerBlockRelation;
 use ViewComponents\Core\Block\Form;
 use ViewComponents\Core\Block\ListBlock;
 use ViewComponents\Core\Block\ListBlock\Pagination\PaginationTemplate;
@@ -27,7 +26,7 @@ use ViewComponents\Core\Common\MagicHubAccessTrait;
  * @property PaginationViewInterface $block
  * @property-read string $parentId
  */
-class Pagination implements ComponentInterface
+class Pagination extends Compound\Component\AbstractComponent
 {
     Use MagicHubAccessTrait;
 
@@ -43,40 +42,29 @@ class Pagination implements ComponentInterface
         $parentId = Compound::CONTAINER_BLOCK
     )
     {
-        $this->hub = new Hub([
-            new Item('uriPageParam', $uriPageParam),
-            new Item('pageSize', $pageSize),
-            new Item('parentId', $parentId),
-            new Item('operation', null),
-            new Item('block', function () {
-                return new PaginationTemplate();
+        parent::__construct([
+            'uriPageParam' => $uriPageParam,
+            'pageSize' => $pageSize,
+            'parentId' => $parentId,
+            new Item('operation', ['currentPage', 'pageSize'], function (PaginateOperation &$operation = null, $currentPage, $pageSize) {
+                $operation = new PaginateOperation($currentPage, $pageSize);
             }),
-            new Relation(
-                'operation',
-                ['currentPage', 'pageSize'],
-                function (&$operation, $currentPage, $pageSize) {
-                    $operation = new PaginateOperation($currentPage, $pageSize);
-                }
-            )
-        ]);
-
-    }
-
-    public function register(HubInterface $hub)
-    {
-        $this->hub = new SubHub('pagination.', $this->hub, $hub);
-        $this->hub->addDefinition(new Item('currentPage'));
-        $hub->addDefinitions([
-            new Relation(
-                'pagination.currentPage',
-                [InnerBlock::getFullId('form'), 'pagination.uriPageParam'],
+            'block' => function () {
+                return new PaginationTemplate();
+            },
+            new Item(
+                'currentPage',
+                [
+                    SubHub::externalItemId(ListBlock::FORM_BLOCK),
+                    'uriPageParam'
+                ],
                 function (&$currentPage, Form $form, $uriPageParam) {
                     $currentPage = $form->getInputValue($uriPageParam, 1);
                 }
             ),
             new Relation(
-                'query',
-                'pagination.operation',
+                SubHub::externalItemId(ListBlock::QUERY),
+                'operation',
                 function (QueryInterface $query, PaginateOperation $operation = null, PaginateOperation $prev = null) {
                     if ($prev) {
                         $query->removeOperation($prev);
@@ -84,9 +72,34 @@ class Pagination implements ComponentInterface
                     $query->addOperation($operation);
                 }
             ),
+        ]);
+    }
+
+    protected function getId()
+    {
+        return 'pagination';
+    }
+
+    public function register(HubInterface $hub)
+    {
+        parent::register($hub);
+        //$this->hub->addDefinition(new Item('currentPage'));
+        $hub->addDefinitions([
+//            new Relation(
+//                $this->externalId('currentPage'),
+//                [ListBlock::FORM_BLOCK, $this->externalId('uriPageParam')],
+//                function (&$currentPage, Form $form, $uriPageParam) {
+//                    $currentPage = $form->getInputValue($uriPageParam, 1);
+//                }
+//            ),
+
             new Relation(
-                'pagination.block',
-                ['pagination.operation', 'pagination.uriPageParam', 'query'],
+                $this->externalId('block'),
+                [
+                    $this->externalId('operation'),
+                    $this->externalId('uriPageParam'),
+                    ListBlock::QUERY
+                ],
                 function (PaginationViewInterface $block, PaginateOperation $operation = null, $uriPageParam, QueryInterface $query) {
 
                     // calculate total pages
@@ -104,7 +117,9 @@ class Pagination implements ComponentInterface
                     }
                 }
             ),
-            new Relation($this->parentId, 'pagination.block', InnerBlock::attachInnerBlockFunc()),
+            new Relation(
+                $this->parentId,
+                $this->externalId('block'), InnerBlockRelation::getHandler()),
         ]);
     }
 }

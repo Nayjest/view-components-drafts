@@ -23,10 +23,11 @@ class Compound implements BlockInterface
     use BlockTrait;
     use MagicHubAccessTrait;
 
+    const CONTAINER_BLOCK = 'containerBlock';
+    const ROOT_BLOCK = 'rootBlock';
+
     /** @var  Hub */
     protected $hub;
-
-    const CONTAINER_BLOCK = 'containerBlock';
 
     /**
      * Compound constructor.
@@ -34,8 +35,10 @@ class Compound implements BlockInterface
      */
     public function __construct(array $components = [])
     {
-        $this->hub = new Hub();
-        $this->hub->builder()->define('root', $this);
+        if ($this->hub === null) { # Another hub class may be used in child classes, see AbstractCompoundComponent.
+            $this->hub = new Hub();
+        }
+        $this->hub->builder()->define(self::ROOT_BLOCK, $this);
         $this->addComponents($components);
         if (!$this->hub->has(self::CONTAINER_BLOCK)) {
             $this->hub->builder()->define(self::CONTAINER_BLOCK, new Container());
@@ -54,7 +57,7 @@ class Compound implements BlockInterface
      */
     public function addComponents(array $components)
     {
-        foreach($components as $component) {
+        foreach ($components as $component) {
             $this->addComponent($component);
         }
         return $this;
@@ -63,5 +66,10 @@ class Compound implements BlockInterface
     protected function renderInternal()
     {
         return $this->containerBlock->render();
+    }
+
+    protected function hasBlock($id)
+    {
+        return $this->hub->has($id . 'Block');
     }
 }

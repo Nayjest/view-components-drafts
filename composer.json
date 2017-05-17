@@ -16,7 +16,7 @@
         "evenement/evenement": "^2.0",
         "nayjest/querying": "dev-master",
         "symfony/event-dispatcher": "^3.2",
-        "nayjest/di-hub": "dev-v0.5-dev"
+        "nayjest/di-hub": "dev-v0.6-dev"
     },
     "autoload": {
         "psr-4": {
@@ -38,6 +38,7 @@
     },
     "scripts": {
         "test": "php vendor/phpunit/phpunit/phpunit",
-        "unit-test": "php vendor/phpunit/phpunit/phpunit --testsuite unit"
+        "unit-test": "php vendor/phpunit/phpunit/phpunit --testsuite unit",
+        "serve": "php -S localhost:8000"
     }
 }

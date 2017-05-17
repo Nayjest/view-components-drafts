@@ -18,18 +18,29 @@ use ViewComponents\Core\Block\Compound\Component\InnerBlock;
  * @property array $requestData
  * @method $this setRequestData(array $data)
  * @method array getRequestData()
+ *
+ * @property-read Tag $formBlock
+ * @property-read Tag $submitButtonBlock
+ *
  */
 class Form extends Compound
 {
     const SUBMIT_SORT_POSITION = 99;
 
+    const INPUT_DATA = 'inputData';
+    const REQUEST_DATA = 'requestData';
+    const ERRORS = 'errors';
+
+    const FORM_BLOCK = 'formBlock';
+    const SUBMIT_BUTTON_BLOCK = 'submitButtonBlock';
+
     public function __construct(array $components = [])
     {
         parent::__construct($components);
         $this->hub->builder()
-            ->define('inputData', [], true)
-            ->define('requestData', [])
-            ->usedBy('inputData', function(array &$inputData, array $newRequestData, array $oldRequestData = null) {
+            ->define(self::INPUT_DATA, []) // @todo readonly
+            ->define(self::REQUEST_DATA, [])
+            ->usedBy(self::INPUT_DATA, function(array &$inputData, array $newRequestData, array $oldRequestData = null) {
                 if ($oldRequestData) {
                     foreach(array_keys($oldRequestData) as $key) {
                         if (!array_key_exists($key, $newRequestData)) {
@@ -39,14 +50,17 @@ class Form extends Compound
                 }
                 $inputData = array_merge($inputData, $newRequestData);
             })
-            ->define('errors', []);
+            ->define(self::ERRORS, []);
 
-        if (!$this->hub->has('formBlock')) {
-            $this->addComponent(new InnerBlock('form', new Tag('form')));
+        if (!$this->hub->has(self::FORM_BLOCK)) {
+            $this->addComponent(
+                InnerBlock::make(self::FORM_BLOCK, Tag::make('form')->setBlockSeparator(' '))
+            );
         }
-        if (!$this->hub->has('submitButtonBlock')) {
+        if (!$this->hub->has(self::SUBMIT_BUTTON_BLOCK)) {
             $this->addComponent(new InnerBlock(
-                'form.submitButton',
+                self::SUBMIT_BUTTON_BLOCK,
+                self::FORM_BLOCK,
                 Tag::make('input')
                     ->setAttribute('type', 'submit')
                     ->setSortPosition(self::SUBMIT_SORT_POSITION)

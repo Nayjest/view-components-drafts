@@ -21,7 +21,7 @@ class DataPresenter implements BlockInterface, DataPresenterInterface
      */
     private $injector;
 
-    public function __construct(callable $dataInjector, BlockInterface $viewBlock = null, $data = null)
+    public function __construct(callable $dataInjector = null, BlockInterface $viewBlock = null, $data = null)
     {
         if ($data !== null) {
             $this->setData($data);

@@ -4,7 +4,7 @@
  * @var int $current
  * @var PaginationTemplate $block
  */
-use ViewComponents\ViewComponents\Component\Control\View\PaginationTemplate;
+use ViewComponents\Core\Block\ListBlock\Pagination\PaginationTemplate;
 
 isset($maxLinks) || $maxLinks = 10;
 isset($minNumLinksAroundCurrent) || $minNumLinksAroundCurrent = 2;
@@ -13,7 +13,7 @@ isset($minNumLinksNearEnd) || $minNumLinksNearEnd = 1;
 isset($maxNumLinks) || $maxNumLinks = $maxLinks - 2;
 ?>
 <nav data-role="control-container" data-control="pagination">
-    <ul>
+    <ul class="pagination">
         <?= $block->renderLink(1, '«') ?>
 
         <?php if ($total < $maxNumLinks): ?>

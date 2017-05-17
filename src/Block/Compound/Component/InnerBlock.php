@@ -2,12 +2,10 @@
 
 namespace ViewComponents\Core\Block\Compound\Component;
 
-use Nayjest\DI\Definition\Item;
-use Nayjest\DI\Definition\Relation;
 use Nayjest\DI\HubInterface;
 use ViewComponents\Core\Block\Compound;
+use ViewComponents\Core\Block\Compound\Component\InnerBlock\InnerBlockRelation;
 use ViewComponents\Core\BlockInterface;
-use ViewComponents\Core\ContainerInterface;
 
 /**
  * Class InnerBlock
@@ -15,57 +13,76 @@ use ViewComponents\Core\ContainerInterface;
  * 1) Adds target block into compound block hierarchy as inner block
  * 2) Registers <id>Block in hub
  */
-class InnerBlock implements ComponentInterface
+class InnerBlock extends AbstractComponent
 {
-    public static function getFullId($blockId)
+
+    protected $id;
+    protected $parentId;
+    protected $relation;
+
+    protected function getId()
     {
-        return $blockId . 'Block';
+        return $this->id;
     }
-    /**
-     * @var
-     */
-    private $blockId;
 
-    /**
-     * @var
-     */
-    private $parentSelector;
+    /** @var  HubInterface|null */
+    protected $externalHub;
 
-    /**
-     * @var BlockInterface
-     */
-    private $block;
-    /** @var  HubInterface */
-    private $hub;
-
-    public function __construct($path, BlockInterface $block = null)
+    public static function make($path, BlockInterface $block)
     {
-        $this->parsePath($path);
-        $this->block = $block;
+        $parts = explode('.', $path);
+        list($parentId, $id) = count($parts) > 1 ? $parts : [null, $parts[0]];
+        return new static($id, $parentId, $block);
+    }
+
+    public function __construct($id, $parentId, BlockInterface $block = null)
+    {
+        parent::__construct(compact('block'));
+        $this->id = str_replace('Block', '', $id);
+        $this->setParentId($parentId);
+    }
+
+    public function setParentId($id)
+    {
+        if ($id === null) {
+            $id = Compound::CONTAINER_BLOCK;
+        }
+        if ($id === $this->parentId) {
+            return $this;
+        }
+        $this->parentId = $id;
+        if ($this->externalHub) {
+            $this->updateRelation();
+        }
+        return $this;
+    }
+
+    protected function updateRelation()
+    {
+        if ($this->relation !== null) {
+            $block = $this->getBlock();
+            // old relation will remove block from old container
+            $this->hub->set('block', null);
+            $this->externalHub->remove($this->relation);
+            $this->hub->set('block', $block);
+        }
+        $this->relation = new InnerBlockRelation($this->parentId, $this->id);
+        $this->externalHub->addDefinition($this->relation);
     }
 
     public function register(HubInterface $hub)
     {
-        $this->hub = $hub;
-        $hub->addDefinitions([
-            new Item(
-                $id     = $this->blockId,
-                $value  = $this->block
-            ),
-            new Relation(
-                $target =  $this->parentSelector,
-                $source =  $this->blockId,
-                $handler = static::attachInnerBlockFunc())
-        ]);
+        parent::register($hub);
+        $this->externalHub = $hub;
+        $this->updateRelation();
     }
 
+    /**
+     * @param BlockInterface $block
+     */
     public function setBlock(BlockInterface $block)
     {
-        $this->block = $block;
-        if ($this->hub) {
-            $this->hub->set($this->blockId, $block);
-        }
-        return $this;
+        $this->hub->set('block', $block);
     }
 
     /**
@@ -73,29 +90,6 @@ class InnerBlock implements ComponentInterface
      */
     public function getBlock()
     {
-        return $this->block;
-    }
-
-    public static function attachInnerBlockFunc()
-    {
-        return function (ContainerInterface $container, BlockInterface $block, $oldVal) {
-            //\dump("attach", $container, $block);
-            if ($oldVal !== null && $oldVal !== $block) {
-                $container->removeInnerBlock($oldVal);
-            }
-            if (!$container->hasInnerBlock($block)) {
-                $container->addInnerBlock($block);
-            }
-        };
-    }
-
-    protected function parsePath($path)
-    {
-        $parts = explode('.', $path);
-        foreach ($parts as &$part) {
-            $part = self::getFullId($part);
-        }
-        $this->blockId = array_pop($parts);
-        $this->parentSelector = join('.', $parts) ?: Compound::CONTAINER_BLOCK;
+        return $this->hub->get('block');
     }
 }

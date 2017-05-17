@@ -20,7 +20,7 @@ class RequestData implements ComponentInterface
 
     public function register(HubInterface $hub)
     {
-        $hub->builder()->defineRelation('requestData', null, function (&$input) {
+        $hub->builder()->defineRelation(Form::REQUEST_DATA, null, function (&$input) {
             $input = array_merge($input ?: [], $this->input);
         });
     }

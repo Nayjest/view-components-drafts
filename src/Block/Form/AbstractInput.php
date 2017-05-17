@@ -2,12 +2,11 @@
 
 namespace ViewComponents\Core\Block\Form;
 
+use Nayjest\DI\Definition\Relation;
 use Nayjest\DI\HubInterface;
-use Nayjest\DI\SubHub;
 use ViewComponents\Core\Block\CollectionPresenter;
 use ViewComponents\Core\Block\Compound;
-use ViewComponents\Core\Block\Compound\Component\DefinitionBuilder;
-use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
+use ViewComponents\Core\Block\Compound\Component\AbstractCompoundComponent;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\Block\Form;
 use ViewComponents\Core\Block\Tag;
@@ -54,75 +53,60 @@ use ViewComponents\Core\Block\Tag;
  * @property string $parentId
  *
  */
-class AbstractInput extends Compound implements ComponentInterface
+class AbstractInput extends AbstractCompoundComponent
 {
-//    public $name;
-//    public $label;
-//    public $value;
-//    public $errors = [];
+    const LABEL_BLOCK = 'labelBlock';
+    const ERRORS_CONTAINER_BLOCK = 'errorsContainerBlock';
+    const ERROR_COLLECTION_BLOCK = 'errorCollectionBlock';
+    const ERROR_BLOCK = 'errorBlock';
+
+    const ERRORS = 'errors';
+    const NAME = 'name';
+    const LABEL = 'label';
+    const VALUE = 'value';
+
+    protected function getId()
+    {
+        return $this->name . 'Input';
+    }
 
     public function __construct($name, $label = null, $value = null)
     {
-        parent::__construct([
+        parent::__construct(compact(self::NAME, self::LABEL, self::VALUE) + [
+            'parentId' => Form::FORM_BLOCK,
+            self::ERRORS => [],
+
             // replace empty container to 'div' tag
-            DefinitionBuilder::make()
-                ->define(Compound::CONTAINER_BLOCK, new Tag('div'))
-                ->define('parentId', 'formBlock')
-            ,
-            new InnerBlock(
-                'container.label',
-                Tag::make('label')->setSortPosition(1)
-//                function () {
-//                    $this->labelBlock
-//                        ->setVisibility($this->label !== null)
-//                        ->setData($this->label);
-//                }
-            ),
-            new InnerBlock(
-                'container.errorsContainer',
-                Tag::make('div')->setSortPosition(3)
-//                function () {
-//                    $this->errorsBlock->setVisibility($this->hasErrors());
-//                }
-            ),
-            new InnerBlock(
-                'errorsContainer.errorCollection',
-                CollectionPresenter::make()
-//                function () {
-//                    $this->errorCollectionBlock
-//                        ->setData($this->errors)
-//                        ->setRecordView($this->errorBlock);
-//                }
-            ),
-            new InnerBlock('errorCollection.error', new Tag('p'))
-        ]);
-        $this->hub->builder()
-            ->define('name', $name)
-            ->define('label', $label)
-            ->usedBy('labelBlock', function (Tag $block, $label) {
+            Compound::CONTAINER_BLOCK => Tag::make('div')->setBlockSeparator(' '),
+
+            InnerBlock::make(self::LABEL_BLOCK, Tag::make('label')->setSortPosition(1)),
+            new Relation(self::LABEL_BLOCK, self::LABEL, function (Tag $block, $label) {
                 $block
                     ->setVisibility($label !== null)
                     ->setData($label);
-            })
-            ->define('value', $value)
-            ->define('errors', [])
-            ->usedBy('errorsContainerBlock', function (Tag $block, $errors) {
+            }),
+
+            InnerBlock::make(self::ERRORS_CONTAINER_BLOCK, Tag::make('div')->setSortPosition(3)),
+            new Relation(self::ERRORS_CONTAINER_BLOCK, self::ERRORS, function (Tag $block, $errors) {
                 $block->setVisibility(!empty($errors));
-            })
-            ->usedBy('errorCollectionBlock', function (CollectionPresenter $block, $errors) {
+            }),
+            new InnerBlock(self::ERROR_COLLECTION_BLOCK, self::ERRORS_CONTAINER_BLOCK, new CollectionPresenter()),
+
+            new Relation(self::ERROR_COLLECTION_BLOCK, self::ERRORS, function (CollectionPresenter $block, $errors) {
                 $block->setData($errors);
-            })
-            ->defineRelation('errorCollectionBlock', 'errorBlock', function (CollectionPresenter $block, $errorBlock) {
+            }),
+            new InnerBlock(self::ERROR_BLOCK, self::ERROR_COLLECTION_BLOCK, new Tag('p')),
+            new Relation(self::ERROR_COLLECTION_BLOCK, self::ERROR_BLOCK, function (CollectionPresenter $block, $errorBlock) {
                 $block->setRecordView($errorBlock);
-            });
-        ;
+            }),
+
+        ]);
     }
 
     public function hasErrors()
     {
-        return !empty($this->hub->get('errors'));
+        return !empty($this->hub->get(self::ERRORS));
     }
-
 
     /**
      * @param string[] $errors
@@ -136,50 +120,34 @@ class AbstractInput extends Compound implements ComponentInterface
 
     public function register(HubInterface $hub)
     {
-        $prefix = $this->name . 'Input';
-        $this->hub = new SubHub($prefix, $this->hub, $hub);
-        $hub->builder()
+        parent::register($hub);
+        $hub->addDefinitions([
             # Attach to Form.formBlock as inner block
-            ->defineRelation($this->parentId, $prefix . 'root', InnerBlock::attachInnerBlockFunc())
+            new InnerBlock\InnerBlockRelation($this->parentId, $this->externalId(self::ROOT_BLOCK)),
+
             # Push Input.value to Form.inputData
-            ->defineRelation('inputData', $prefix . 'value', function(&$data, $value) {
-                if (!array_key_exists($this->name, $data)) {
-                    $data[$this->name] = $value;
+            new Relation(
+                Form::INPUT_DATA,
+                $this->externalId(self::VALUE),
+                function(&$data, $value) {
+                    if (!array_key_exists($this->name, $data)) {
+                        $data[$this->name] = $value;
+                    }
                 }
-            })
+            ),
+
             # Read Input.value from Form.requestData
-            ->defineRelation($prefix . 'value', 'requestData', function(&$value, $data) {
+            new Relation($this->externalId(self::VALUE), Form::REQUEST_DATA, function(&$value, $data) {
                 if (array_key_exists($this->name, $data)) {
                     $value = $data[$this->name];
                 }
-            })
-            ->defineRelation($prefix . 'errors', 'errors', function(&$inputErrors, $errors) {
+            }),
+
+            new Relation($this->externalId(self::ERRORS), Form::ERRORS, function(&$inputErrors, $errors) {
                 if (array_key_exists($this->name, $errors)) {
                     $inputErrors = $errors[$this->name];
                 }
             })
-        ;
-//
-//        $blockId = $this->name . 'InputBlock';
-//        $hub->builder()
-//            ->define($blockId, $this)
-//            ->usedBy('formBlock', $this->attachInnerBlockFunc())
-//            ->defineRelation('inputData', $blockId, function (&$inputData, AbstractInput $input) {
-//                if (!array_key_exists($input->name, $inputData)) {
-//                    $inputData[$input->name] = $input->value;
-//                }
-//            })
-//            ->defineRelation($blockId, 'requestData', function (AbstractInput $input, $requestData) {
-//                if (array_key_exists($input->name, $requestData)) {
-//                    $input->value = $requestData[$input->name];
-//                }
-//            })
-//            ->defineRelation($blockId, 'errors', function (AbstractInput $input, $errors) {
-//                if (array_key_exists($input->name, $errors)) {
-//                    $input->setErrors($errors[$input->name]);
-//                }
-//            })
-//        ;
-
+        ]);
     }
 }

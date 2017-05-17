@@ -9,7 +9,6 @@ use ViewComponents\Core\Block\Form;
 
 class Validator implements ComponentInterface
 {
-    const EVENT_FORM_VALIDATE = 'form_validate';
     /**
      * @var
      */
@@ -34,9 +33,9 @@ class Validator implements ComponentInterface
 
     public function register(HubInterface $hub)
     {
-        $hub->builder()->defineRelation('errors', null, function (&$errors) use ($hub) {
+        $hub->builder()->defineRelation(Form::ERRORS, null, function (&$errors) use ($hub) {
             /** @var Form $form */
-            $form = $hub->get('root');
+            $form = $hub->get(Form::ROOT_BLOCK);
             $data = $form->requestData;
             if (!array_key_exists($this->inputName, $data)) {
                 return;

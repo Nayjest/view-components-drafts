@@ -3,6 +3,7 @@
 namespace ViewComponents\Core\Block\Compound\Component;
 
 use Nayjest\DI\Builder\DeferredDefinitionBuilder;
+use ViewComponents\Core\Block\Compound\Component\InnerBlock\InnerBlockRelation;
 use ViewComponents\Core\Common\MakeTrait;
 
 /**
@@ -10,11 +11,11 @@ use ViewComponents\Core\Common\MakeTrait;
  */
 class DefinitionBuilder extends DeferredDefinitionBuilder implements ComponentInterface
 {
-    use \ViewComponents\Core\Common\MakeTrait;
+    use MakeTrait;
 
     public function usedByBlock($id, callable $func)
     {
-        $this->usedBy(InnerBlock::getFullId($id), $func);
+        $this->usedBy(InnerBlockRelation::getBlockId($id), $func);
         return $this;
     }
 
@@ -25,7 +26,7 @@ class DefinitionBuilder extends DeferredDefinitionBuilder implements ComponentIn
     }
     public function withBlock($id)
     {
-        $this->currentItemId = InnerBlock::getFullId($id);
+        $this->currentItemId = InnerBlockRelation::getBlockId($id);
         return $this;
     }
 }

@@ -1,18 +1,35 @@
+<link
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+    crossorigin="anonymous"
+>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<!--<script
+    src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+    crossorigin="anonymous"
+></script>-->
+
 <?php
 use Nayjest\Querying\ArrayQuery;
 use Nayjest\Querying\Operation\FilterOperation;
 use Nayjest\Querying\Row\ArrayRow;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
-use ViewComponents\Core\Block\Form\Select;
+
+use ViewComponents\Core\Block\Compound\Component\SubComponent;
+use ViewComponents\Core\Block\Form\ResetButton;
 use ViewComponents\Core\Block\ListBlock\Filter;
 use ViewComponents\Core\Block\ListBlock;
 use ViewComponents\Core\Block\ListBlock\PageSizeSelect;
 use ViewComponents\Core\Block\ListBlock\Pagination;
 use ViewComponents\Core\Block\ListBlock\SortingControl;
-use ViewComponents\Core\Block\Tag;
-use ViewComponents\Core\Block\VarDump;
+use ViewComponents\Core\Customization\TwitterBootstrap;
+
 
 require __DIR__ . '/../vendor/autoload.php';
+
+
 $data = [
     ['name' => 'Robert', 'age' => 32],
     ['name' => 'Jack', 'age' => 24],
@@ -30,14 +47,29 @@ $data = [
     ['name' => 'User11', 'age' => 45],
 ];
 
-$list = new ListBlock(new ArrayQuery($data, ArrayRow::class), new VarDump, [
-    new Filter('name', FilterOperation::OPERATOR_STR_CONTAINS),
-    new Filter('age', FilterOperation::OPERATOR_EQ),
-    new Pagination('page', 5),
-    new PageSizeSelect([2,5,10,20], 5),
-    new SortingControl(['name', 'age'])
-]);
+$list = new ListBlock(
+    new ArrayQuery($data, ArrayRow::class),
+    [
+        new Filter('name', FilterOperation::OPERATOR_STR_CONTAINS),
+        new Filter('age', FilterOperation::OPERATOR_EQ),
+        new Pagination('page', 5),
+        new SortingControl(['name', 'age']),
+        new PageSizeSelect([2, 5, 10, 20], 5),
+        new SubComponent(ListBlock::FORM_BLOCK, new ResetButton())
+//        new RecordView(new DataPresenter(
+//            function($data, Tag $tag) {
+//                $tag->getInnerBlocks()[0]->getInnerBlocks()[0]->setData($data);
+//            },
+//            Tag::make('div', [], [
+//                Tag::make('pre', [], [
+//                    new Json(null, JSON_PRETTY_PRINT)
+//                ])
+//            ])
+//        ))
+    ]
+);
 
+TwitterBootstrap::make()->apply($list);
 echo $list->render();
 //    new ArrayQuery($data, ArrayRow::class),
 //$list = new ListBlock(

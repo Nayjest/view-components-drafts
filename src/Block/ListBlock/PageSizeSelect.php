@@ -63,12 +63,12 @@ class PageSizeSelect implements ComponentInterface
     {
         $hub->builder()
             ->define('pageSizeSelect.block', [$this, 'getBlock'])
-            ->usedBy(InnerBlock::getFullId('form'), function (Form $form, AbstractInput $block) {
+            ->usedBy('formBlock', function (Form $form, AbstractInput $block) {
                 $form->addComponent($block);
             })
             ->defineRelation(
-                'pagination.pageSize',
-                [InnerBlock::getFullId('form'), 'pageSizeSelect.block'],
+                'paginationPageSize',
+                ['formBlock', 'pageSizeSelect.block'],
                 function (&$pageSize, Form $form, AbstractInput $block) {
                     if ($block->hasErrors()) {
                         return;

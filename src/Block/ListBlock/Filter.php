@@ -84,10 +84,10 @@ class Filter implements ComponentInterface
     public function register(HubInterface $hub)
     {
         $hub->addDefinitions([
-            new Relation(InnerBlock::getFullId('form'), null, function(Form $form) {
+            new Relation(ListBlock::FORM_BLOCK, null, function(Form $form) {
                 $form->addComponent($this->getBlock());
             }),
-            new Relation('query', InnerBlock::getFullId('form'), function(QueryInterface $query) {
+            new Relation(ListBlock::QUERY, ListBlock::FORM_BLOCK, function(QueryInterface $query) {
                 $this->modifyQuery($query);
             }),
         ]);

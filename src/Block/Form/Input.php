@@ -16,7 +16,8 @@ class Input extends AbstractInput
     {
         parent::__construct($name, $label, $value);
         $this->addComponent(new InnerBlock(
-            'container.input',
+            'input',
+            null,
             Tag::make('input')->setSortPosition(2)
         ));
         $this->hub->builder()
