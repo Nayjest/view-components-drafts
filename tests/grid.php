@@ -54,11 +54,11 @@ $grid = new Grid($query, [
     new Filter('name', FilterOperation::OPERATOR_STR_CONTAINS),
     new Filter('age', FilterOperation::OPERATOR_EQ),
     $pagination,
-    //new SortingControl(['name', 'age']),
+   // new SortingControl(['name', 'age']),
     new PageSizeSelect([2, 5, 10, 20], 5),
     new SubComponent(ListBlock::FORM_BLOCK, new ResetButton()),
 ]);
-$grid->paginationBlock = new Pagination\PaginationTemplate();
+//$grid->paginationBlock = new Pagination\PaginationTemplate();
 TwitterBootstrap::make()->apply($grid);
 
 
