@@ -17,4 +17,10 @@ interface RendererInterface
      * @return TemplateFinder
      */
     public function getFinder();
+
+    /**
+     * @param TemplateFinder $finder
+     * @return $this
+     */
+    public function setFinder(TemplateFinder $finder);
 }

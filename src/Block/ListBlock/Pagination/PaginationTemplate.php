@@ -14,8 +14,8 @@ class PaginationTemplate extends Template implements PaginationViewInterface
     private $linkTemplateName;
 
     public function __construct(
-        $templateName = 'pagination',
-        $linkTemplateName = 'pagination/link',
+        $templateName = 'list_block/pagination',
+        $linkTemplateName = 'list_block/pagination/link',
         RendererInterface $renderer = null
     ) {
         parent::__construct($templateName, [], $renderer);

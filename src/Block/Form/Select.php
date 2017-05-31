@@ -2,12 +2,10 @@
 
 namespace ViewComponents\Core\Block\Form;
 
-use ViewComponents\Core\Block\Block;
 use ViewComponents\Core\Block\CollectionPresenter;
 use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\Block\DataPresenter;
 use ViewComponents\Core\Block\Tag;
-use ViewComponents\Core\Compound\Component;
 use ViewComponents\Core\DataPresenterInterface;
 
 /**
@@ -28,25 +26,21 @@ use ViewComponents\Core\DataPresenterInterface;
  */
 class Select extends AbstractInput
 {
-    /**
-     * @var array
-     */
-    private $options;
+    const SELECT_BLOCK = 'selectBlock';
+    const OPTION_COLLECTION_BLOCK = 'optionCollectionBlock';
+    const OPTION_BLOCK = 'optionBlock';
+
+    const OPTIONS = 'options';
 
     public function __construct($name, $label = null, array $options = [])
     {
         parent::__construct($name, $label, null);
         $this->addComponents([
-            new InnerBlock('container.select', Tag::make('select')->setSortPosition(2), function () {
-                $this->selectBlock->setAttribute('name', $this->name);
-            }),
-            new InnerBlock('select.option_collection', new CollectionPresenter(), function () {
-                $this->optionCollectionBlock
-                    ->setData($this->getOptionsForSelect())
-                    ->setRecordView($this->optionBlock);
-            }),
+            new InnerBlock(self::SELECT_BLOCK, null, Tag::make('select')->setSortPosition(2)),
+            new InnerBlock(self::OPTION_COLLECTION_BLOCK, self::SELECT_BLOCK, new CollectionPresenter()),
             new InnerBlock(
-                'option_collection.option',
+                self::OPTION_BLOCK,
+                self::OPTION_COLLECTION_BLOCK,
                 new DataPresenter(
                     function (array $record, Tag $optionBlock) {
                         $optionBlock
@@ -62,13 +56,33 @@ class Select extends AbstractInput
                 )
             ),
         ]);
-        $this->options = $options;
+
+        $this->hub->builder()
+            ->define(self::OPTIONS, $options)
+            ->usedBy(self::OPTION_COLLECTION_BLOCK, function (CollectionPresenter $block, $options) {
+                $block->setData($this->getOptionsForSelect($options));
+            })
+            ->usedBy(self::VALUE, function (&$value, $options) {
+                if ($value === null) {
+                    $options = $this->getOptionsForSelect($options);
+                    foreach ($options as $option) {
+                        $value = $option['value'];
+                        return;
+                    }
+                }
+            })
+            ->defineRelation(self::SELECT_BLOCK, self::NAME, function (Tag $select, $name) {
+                $select->setAttribute('name', $name);
+            })
+            ->defineRelation(self::OPTION_COLLECTION_BLOCK, self::OPTION_BLOCK, function (CollectionPresenter $collection, DataPresenterInterface $option) {
+                $collection->setRecordView($option);
+            });
     }
 
-    protected function getOptionsForSelect()
+    protected function getOptionsForSelect(array $options)
     {
         $optionsForSelect = [];
-        foreach ($this->options as $key => $value) {
+        foreach ($options as $key => $value) {
             if (!is_array($value)) {
                 $option = [
                     'value' => $key,

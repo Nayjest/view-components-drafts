@@ -9,9 +9,9 @@ $name->setErrors([
     'error text 1',
     'error text 2'
 ]);
-$name = serialize($name);
-$name = unserialize($name);
-//$name->containerBlock->setName('span');
+//$name = serialize($name);
+//$name = unserialize($name);
+$name->containerBlock->setName('span');
 
 ?>
 <form>

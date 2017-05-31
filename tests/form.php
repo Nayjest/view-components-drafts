@@ -1,12 +1,19 @@
+<link
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+    crossorigin="anonymous"
+>
 <?php
 
-use ViewComponents\Core\Block\Compound;
 use ViewComponents\Core\Block\Form;
+use ViewComponents\Core\Block\Tag;
+use ViewComponents\Core\Customization\TwitterBootstrap;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 
-$form = new \ViewComponents\Core\Block\Form([
+$form = new Form([
     new Form\Input('login', 'Login'),
     new Form\Input('email', 'E-mail'),
     new Form\Input('birthDate', 'BD', '1970-01-01'),
@@ -45,6 +52,10 @@ $loginValidator = new Form\Validator('login', function ($value) {
 
 
 $form->addComponent($loginValidator);
-echo $form->render();
+$c = new Tag('div', ['class' => 'container']);
+$c->addInnerBlock($form);
+TwitterBootstrap::make()->apply($form);
+
+echo $c->render();
 
 \dump("test ended");

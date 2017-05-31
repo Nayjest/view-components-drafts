@@ -3,14 +3,12 @@
 namespace ViewComponents\Core\Block\Form;
 
 use Exception;
-use ViewComponents\Core\Block\Compound;
+use Nayjest\DI\HubInterface;
 use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
-use ViewComponents\Core\Block\Compound\Component\Event;
 use ViewComponents\Core\Block\Form;
 
 class Validator implements ComponentInterface
 {
-    const EVENT_FORM_VALIDATE = 'form_validate';
     /**
      * @var
      */
@@ -20,51 +18,31 @@ class Validator implements ComponentInterface
      */
     private $rule;
 
-    private $id;
-
+    /**
+     * Validator constructor.
+     * @param $inputName
+     * @param callable $rule function that returns
+     *                       true or empty array on success
+     *                       and returns false or string[] $errorMessages if validation failed
+     */
     public function __construct($inputName, callable $rule)
     {
-        $this->id = $inputName . '_validator' . rand(0, PHP_INT_MAX);
         $this->inputName = $inputName;
         $this->rule = $rule;
     }
 
-    public function handle($eventId, Compound $root)
+    public function register(HubInterface $hub)
     {
-        if ($eventId === Compound::EVENT_SET_ROOT) {
-            $root->addComponent(
-                Event::make(self::EVENT_FORM_VALIDATE)
-                ->after(Form::EVENT_UPDATE_VALUES)
-                ->before(Form::EVENT_UPDATE_ERRORS)
-            );
-        } elseif ($eventId === self::EVENT_FORM_VALIDATE) {
-            if (!$root instanceof Form) {
-                throw new Exception("Invalid root, form expected");
+        $hub->builder()->defineRelation(Form::ERRORS, null, function (&$errors) use ($hub) {
+            /** @var Form $form */
+            $form = $hub->get(Form::ROOT_BLOCK);
+            $data = $form->requestData;
+            if (!array_key_exists($this->inputName, $data)) {
+                return;
             }
-            \dump('validate input ' . $this->inputName);
-           $this->validateForm($root);
-
-        }
-    }
-
-    protected function validateForm(Form $form)
-    {
-        if (empty($form->getInputData())) {
-            return;
-        }
-        $result = $this->validateValue($form->getInputValue($this->inputName));
-        if ($result === false) {
-            $errors = [
-                "Wrong {$this->inputName} value."
-            ];
-        } elseif ($result === true) {
-            $errors = [];
-        } elseif (is_array($result)) {
-            $errors = $result;
-        } else {
-            throw new \Exception("Invalid validation rule result for {$this->inputName} input");
-        };
-        $form->addErrors($this->inputName, $errors);
+            $result = $this->validateValue($data[$this->inputName]);
+            $errors[$this->inputName] = $this->validationResultToErrors($result);
+        });
     }
 
     public function validateValue($value)
@@ -72,8 +50,18 @@ class Validator implements ComponentInterface
         return call_user_func($this->rule, $value);
     }
 
-    public function getId()
+    protected function validationResultToErrors($validationResult)
     {
-        return $this->id;
+        if ($validationResult === false) {
+            return [
+                "Wrong {$this->inputName} value."
+            ];
+        } elseif ($validationResult === true) {
+            return [];
+        } elseif (is_array($validationResult)) {
+            return $validationResult;
+        } else {
+            throw new Exception("Invalid validation rule result for {$this->inputName} input");
+        }
     }
 }

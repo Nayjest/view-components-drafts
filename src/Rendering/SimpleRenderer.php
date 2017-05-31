@@ -54,9 +54,11 @@ class SimpleRenderer implements RendererInterface
 
     /**
      * @param TemplateFinder $finder
+     * @return $this
      */
-    public function setFinder($finder)
+    public function setFinder(TemplateFinder $finder)
     {
         $this->finder = $finder;
+        return $this;
     }
 }

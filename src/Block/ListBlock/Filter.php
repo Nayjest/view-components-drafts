@@ -2,21 +2,21 @@
 
 namespace ViewComponents\Core\Block\ListBlock;
 
+use Nayjest\DI\Definition\Relation;
+use Nayjest\DI\HubInterface;
 use Nayjest\Querying\Operation\FilterOperation;
 use Nayjest\Querying\QueryInterface;
-use ViewComponents\Core\Block\Compound;
-use ViewComponents\Core\Block\Compound\Component\BlockComponentInterface;
 use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
-use ViewComponents\Core\Block\Compound\Component\HandlersTrait;
+
+use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\Block\Form;
 use ViewComponents\Core\Block\Form\Input;
 use ViewComponents\Core\Block\Form\InputInterface;
 use ViewComponents\Core\Block\Form\Select;
 use ViewComponents\Core\Block\ListBlock;
 
-class Filter implements BlockComponentInterface
+class Filter implements ComponentInterface
 {
-    use HandlersTrait;
     /**
      * @var
      */
@@ -25,10 +25,6 @@ class Filter implements BlockComponentInterface
      * @var
      */
     private $operator;
-
-    private $id;
-
-    private $parentId = 'form';
 
     /** @var InputInterface  */
     private $block;
@@ -68,34 +64,11 @@ class Filter implements BlockComponentInterface
     {
         $this->fieldName = $fieldName;
         $this->operator = $operator;
-        $this->id = $this->fieldName . $operator. '_filter';
         $this->block = $input;
     }
 
     /**
-     * @return string
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
-     * @return string
-     */
-    public function getParentId()
-    {
-        return $this->parentId;
-    }
-
-    public function setParentId($id)
-    {
-        $this->parentId = $id;
-        return $this;
-    }
-
-    /**
-     * @return InputInterface
+     * @return Form\AbstractInput
      */
     public function getBlock()
     {
@@ -108,32 +81,33 @@ class Filter implements BlockComponentInterface
         return $this->block;
     }
 
-    public function handle($eventId, Compound $root)
+    public function register(HubInterface $hub)
     {
-        /** @var ListBlock $root */
-        $this->checkRootType($eventId, $root, ListBlock::class);
-        if ($eventId === Compound::EVENT_SET_ROOT) {
-            $root->formBlock->addComponent($this->getBlock());
-        } elseif ($eventId === Compound::EVENT_UNSET_ROOT) {
-            $root->formBlock->removeComponent($this->getBlock()->getId());
-        } elseif ($eventId === ListBlock::EVENT_MODIFY_QUERY) {
-            $this->modifyQuery($root->getQuery());
-        }
+        $hub->addDefinitions([
+            new Relation(ListBlock::FORM_BLOCK, null, function(Form $form) {
+                $form->addComponent($this->getBlock());
+            }),
+            new Relation(ListBlock::QUERY, ListBlock::FORM_BLOCK, function(QueryInterface $query) {
+                $this->modifyQuery($query);
+            }),
+        ]);
+    }
+
+    protected function hasValidInput()
+    {
+        $block = $this->getBlock();
+        return !$block->hasErrors() && !in_array($block->getValue(), [null, ''], true);
     }
 
     protected function modifyQuery(QueryInterface $query)
     {
-        if ($this->getBlock()->hasErrors()) {
-            return;
-        }
-        $value = $this->getBlock()->getValue();
-        if ($value === '' || $value === null) {
+        if (!$this->hasValidInput()) {
             return;
         }
         $query->addOperation(new FilterOperation(
             $this->fieldName,
             $this->operator,
-            $value
+            $this->getBlock()->getValue()
         ));
     }
 
@@ -152,7 +126,6 @@ class Filter implements BlockComponentInterface
             FilterOperation::OPERATOR_LTE => '',
         ];
         $prefixes = [
-
             FilterOperation::OPERATOR_LIKE => '',
             FilterOperation::OPERATOR_STR_STARTS_WITH => 'First ',
             FilterOperation::OPERATOR_STR_ENDS_WITH => 'Last ',

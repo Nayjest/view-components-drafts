@@ -5,7 +5,7 @@ namespace ViewComponents\Core\Block\Form;
 use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
 use ViewComponents\Core\BlockInterface;
 
-interface InputInterface extends BlockInterface, ComponentInterface
+interface InputInterface //extends BlockInterface, ComponentInterface
 {
     public function getName();
 

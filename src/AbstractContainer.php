@@ -3,10 +3,13 @@
 namespace ViewComponents\Core;
 
 use Exception;
+use ViewComponents\Core\Common\MakeTrait;
 use ViewComponents\Core\Common\StableSorting;
 
-abstract class AbstractContainer extends AbstractBlock implements ContainerInterface
+abstract class AbstractContainer implements BlockInterface, ContainerInterface
 {
+    use MakeTrait;
+    use BlockTrait;
 
     private $blockSeparator = '';
 
@@ -54,7 +57,7 @@ abstract class AbstractContainer extends AbstractBlock implements ContainerInter
     public function getInnerBlocksRecursive()
     {
         $res = $this->getInnerBlocks();
-        foreach($this->getInnerBlocks() as $block) {
+        foreach ($this->getInnerBlocks() as $block) {
             if ($block instanceof ContainerInterface) {
                 $res = array_merge($res, $block->getInnerBlocksRecursive());
             }

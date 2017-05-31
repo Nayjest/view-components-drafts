@@ -2,93 +2,83 @@
 
 namespace ViewComponents\Core\Block\ListBlock;
 
-use Exception;
-use ViewComponents\Core\Block\Compound;
-use ViewComponents\Core\Block\Compound\Component\BlockComponentInterface;
-use ViewComponents\Core\Block\Compound\Component\HandlersTrait;
+use InvalidArgumentException;
+use Nayjest\DI\HubInterface;
+use ViewComponents\Core\Block\Compound\Component\ComponentInterface;
+use ViewComponents\Core\Block\Compound\Component\InnerBlock;
 use ViewComponents\Core\Block\Form;
-use ViewComponents\Core\Block\Form\InputInterface;
+use ViewComponents\Core\Block\Form\AbstractInput;
 use ViewComponents\Core\Block\Form\Select;
 use ViewComponents\Core\Block\ListBlock;
 
-
-class PageSizeSelect implements BlockComponentInterface
+class PageSizeSelect implements ComponentInterface
 {
-    use HandlersTrait;
-    const ID = 'page_size_select';
-    const EVENT_ID = 'update_page_size';
 
     private $block;
+    private $defaultOptions = [
+        50 => 50,
+        100 => 100,
+        300 => 300,
+        1000 => 1000
+    ];
+    private $defaultValue;
 
-    public function __construct(InputInterface $input = null)
+    /**
+     * PageSizeSelect constructor.
+     * @param AbstractInput|array $inputOrOptions
+     */
+    public function __construct($inputOrOptions = null, $defaultValue = null)
     {
-        $this->block = $input;
-    }
-
-    public function getId()
-    {
-        return static::ID;
+        $this->defaultValue = $defaultValue;
+        if ($inputOrOptions instanceof AbstractInput) {
+            $this->block = $inputOrOptions;
+            if ($defaultValue!==null) {
+                $inputOrOptions->value = $defaultValue;
+            }
+        } elseif (is_array($inputOrOptions)) {
+            if (isset($inputOrOptions[0])) {
+                $inputOrOptions = array_combine($inputOrOptions, $inputOrOptions);
+            }
+            $this->defaultOptions = $inputOrOptions;
+        } elseif ($inputOrOptions !== null) {
+            throw new InvalidArgumentException;
+        }
     }
 
     /**
-     * @return InputInterface
+     * @return AbstractInput
      */
     public function getBlock()
     {
         if ($this->block === null) {
-            $this->block = new Select('page_size', 'Page Size', [
-                50 => 50,
-                100 => 100,
-                300 => 300,
-                1000 => 1000
-            ]);
+            $this->block = new Select('page_size', 'Records per page', $this->defaultOptions);
+            if ($this->defaultValue!==null) {
+                $this->block->value = $this->defaultValue;
+            }
         }
         return $this->block;
     }
 
-    public function handle($eventId, Compound $root)
+    public function register(HubInterface $hub)
     {
-        $this->checkRootType($eventId, $root, ListBlock::class);
-
-        /** @var ListBlock $root */
-        if ($eventId === Compound::EVENT_SET_ROOT) {
-            $root->formBlock->addComponent($this->getBlock());
-            $root->defineEvent(self::EVENT_ID)
-                ->after(Form::EVENT_UPDATE_ERRORS)
-                ->before(ListBlock::EVENT_MODIFY_QUERY);
-        } elseif ($eventId === Compound::EVENT_UNSET_ROOT) {
-            $root->formBlock->removeComponent($this->getBlock());
-        } elseif ($eventId === static::EVENT_ID) {
-            $this->updatePagination($root);
-        }
-    }
-
-    /**
-     * @return int|null
-     */
-    protected function getValue()
-    {
-        if ($this->getBlock()->hasErrors()) {
-            return null;
-        }
-        $value = $this->getBlock()->getValue();
-        if ($value === '' || $value === null) {
-            return null;
-        }
-        return (int)$value;
-    }
-
-    protected function updatePagination(Compound $root)
-    {
-        $value = $this->getValue();
-        if ($value === null) {
-            return;
-        }
-        if (!$root->hasComponent(Pagination::ID)) {
-            throw new Exception(self::class . ' used with block that has no pagination component.');
-        }
-        /** @var Pagination $pagination */
-        $pagination = $root->getComponent(Pagination::ID);
-        $pagination->setPageSize($value);
+        $hub->builder()
+            ->define('pageSizeSelect.block', [$this, 'getBlock'])
+            ->usedBy('formBlock', function (Form $form, AbstractInput $block) {
+                $form->addComponent($block);
+            })
+            ->defineRelation(
+                'paginationPageSize',
+                ['formBlock', 'pageSizeSelect.block'],
+                function (&$pageSize, Form $form, AbstractInput $block) {
+                    if ($block->hasErrors()) {
+                        return;
+                    }
+                    $value = $form->getInputValue($block->getName());
+                    if ($value === '' || $value === null) {
+                        return;
+                    }
+                    $pageSize = $value;
+                }
+            );
     }
 }
